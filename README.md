@@ -1,4 +1,4 @@
-rgee Demo: Image preprocessing MODIS
+rgee Demo: Image preprocessing AVHRR
 ================
 
 [![GitHub
