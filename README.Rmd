@@ -1,18 +1,22 @@
 ---
 title: "rgee Demo: Image preprocessing MODIS"
-author: "Fernando Prudencio"
-date: "October 28, 2020"
 output: github_document
 ---
+[![GitHub commit](https://img.shields.io/github/last-commit/fernandoprudencio/Preprocessing_AVHRR)](https://github.com/fernandoprudencio/Preprocessing_AVHRR/commits/master)
+
+In that example, we will pre-process the daily AVHRR data (quality filter). In addition, we will calculate the monthly composites of a given period and extract the average time series of a region.
+
+**If you want to contribute to the improvement of the example, please open an issue.**
+
 #### Load libraries
-```{r, message = FALSE, warning = FALSE}
+```{r message=FALSE, warning=FALSE}
 library(rgee)
 library(raster)
 library(tidyverse)
 library(sf)
 ```
 #### Initialize Earth Egine
-```{r, message = FALSE, warning = FALSE}
+```{r message=FALSE, warning=FALSE, paged.print=FALSE}
 ee_Initialize(drive = TRUE)
 ```
 #### Define a region of interest with sf
@@ -23,7 +27,7 @@ ee_roi <- st_read(system.file("shape/nc.shp", package = "sf")) %>%
   sf_as_ee()
 ```
 #### Search into the Earth Engine’s public data archive
-```{r, message = FALSE, warning = FALSE}
+```{r message=FALSE, warning=FALSE}
 avhrr <- ee$ImageCollection("NOAA/CDR/AVHRR/NDVI/V5")
 ```
 #### Define type of quality filter
@@ -37,14 +41,14 @@ bit2 <- ee$Number(2)$pow(2)$int() #Bit 2: Pixel contains cloud shadow
 qaFilter <- function(img) {
   # Extract the NDVI band
   ndvi <- img$select("NDVI")
-
+  
   # Extract the QUALITY band
   qa <- img$select("QA")
-
+  
   # Select pixels to mask
   qa_mask <- qa$bitwiseAnd(bit1)$eq(0)$
     And(qa$bitwiseAnd(bit2)$eq(0))
-
+  
   # Mask pixels with value zero
   ndvi$updateMask(qa_mask) %>% return()
 }
@@ -61,18 +65,18 @@ period <- seq(as.Date("2015-01-01"), as.Date("2019-12-01"), by = "1 month")
 ##### build funtion to extract time series
 ```{r, message = FALSE, warning = FALSE}
 ts_extract <- function(date, images, roi) {
-  print(date)
+  # print(date)
   year <- str_sub(date, 1, 4) %>% as.numeric()
   month <- str_sub(date, 6, 7) %>% as.numeric()
   ndvi <- images$
     filter(ee$Filter$calendarRange(year, year, "year"))$
     filter(ee$Filter$calendarRange(month, month, "month"))$
     median()
-
+  
   data <- ee_extract(ndvi, roi, fun = ee$Reducer$mean(), scale = 5000)
-
+  
   if (ncol(data) == 0) { data <- data.frame(NDVI = rep(NA, nrow(data))) }
-
+  
   return(data)
 }
 ```
