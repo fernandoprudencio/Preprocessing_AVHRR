@@ -20,7 +20,7 @@ library(tidyverse)
 library(sf)
 ```
 
-#### Initialize Earth Egine
+#### Initialize Earth Engine
 
 ``` r
 ee_Initialize(drive = TRUE)
@@ -98,7 +98,7 @@ ndvi_mask <- avhrr$map(qaFilter)
 period <- seq(as.Date("2015-01-01"), as.Date("2019-12-01"), by = "1 month")
 ```
 
-##### build funtion to extract time series
+##### build function to extract time series
 
 ``` r
 ts_extract <- function(date, images, roi) {
