@@ -1,43 +1,26 @@
----
-title: "rgee Demo: Image preprocessing AVHRR"
-output: github_document
----
-[![GitHub commit](https://img.shields.io/github/last-commit/fernandoprudencio/Preprocessing_AVHRR)](https://github.com/fernandoprudencio/Preprocessing_AVHRR/commits/master)
-
-In that example, we will pre-process the daily AVHRR data (quality filter). In addition, we will calculate the monthly composites of a given period and extract the average time series of a region.
-
-**If you want to contribute to the improvement of the example, please open an issue.**
-
 #### Load libraries
-```{r message=FALSE, warning=FALSE}
 library(rgee)
 library(raster)
 library(tidyverse)
 library(sf)
-```
+
 #### Initialize Earth Engine
-```{r message=FALSE, warning=FALSE, paged.print=FALSE}
 ee_Initialize(drive = TRUE)
-```
+
 #### Define a region of interest with sf
-```{r, message = FALSE, warning = FALSE}
 ee_roi <- st_read(system.file("shape/nc.shp", package = "sf")) %>%
   summarise() %>%
   st_geometry() %>%
   sf_as_ee()
-```
+
 #### Search into the Earth Engine’s public data archive
-```{r message=FALSE, warning=FALSE}
 avhrr <- ee$ImageCollection("NOAA/CDR/AVHRR/NDVI/V5")
-```
+
 #### Define type of quality filter
-You can see more details about quality filter in [AVHRR dataset](https://developers.google.com/earth-engine/datasets/catalog/NOAA_CDR_AVHRR_NDVI_V5)
-```{r, message = FALSE, warning = FALSE}
 bit1 <- ee$Number(2)$pow(1)$int() #Bit 1: Pixel is cloudy
 bit2 <- ee$Number(2)$pow(2)$int() #Bit 2: Pixel contains cloud shadow
-```
+
 #### Build quality filter function
-```{r, message = FALSE, warning = FALSE}
 qaFilter <- function(img) {
   # Extract the NDVI band
   ndvi <- img$select("NDVI")
@@ -52,18 +35,15 @@ qaFilter <- function(img) {
   # Mask pixels with value zero
   ndvi$updateMask(qa_mask) %>% return()
 }
-```
+
 #### Apply quality filter
-```{r, message = FALSE, warning = FALSE}
 ndvi_mask <- avhrr$map(qaFilter)
-```
+
 #### Extract time series of average values
 ##### create period
-```{r, message = FALSE, warning = FALSE}
 period <- seq(as.Date("2015-01-01"), as.Date("2019-12-01"), by = "1 month")
-```
+
 ##### build function to extract time series
-```{r, message = FALSE, warning = FALSE}
 ts_extract <- function(date, images, roi) {
   # print(date)
   year <- str_sub(date, 1, 4) %>% as.numeric()
@@ -79,13 +59,11 @@ ts_extract <- function(date, images, roi) {
   
   return(data)
 }
-```
+
 ##### extract time series
-```{r, message = FALSE, warning = FALSE}
 ts <- sapply(period, FUN = ts_extract, images = ndvi_mask, roi = ee_roi)
-```
+
 ##### plot time series
-```{r, message = FALSE, warning = FALSE}
 df <- t(as.data.frame(ts)) %>%
   as_tibble() %>%
   rename("value" = "V1") %>%
@@ -132,4 +110,3 @@ ggplot(df, aes(period, value)) +
       size = .8, color = "black"
     )
   )
-```
